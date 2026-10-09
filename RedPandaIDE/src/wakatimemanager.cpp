@@ -1,12 +1,10 @@
 #include "wakatimemanager.h"
 
 #include "editor.h"
-#include "editormanager.h"
+#include "editoractivitycollector.h"
 #include "mainwindow.h"
-#include "project.h"
 #include "settings.h"
 
-#include <QApplication>
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QElapsedTimer>
@@ -20,9 +18,10 @@ static constexpr int WAKATIME_ACTIVITY_DEBOUNCE_MS = 50;
 static constexpr int WAKATIME_CAPABILITY_PROBE_TIMEOUT_MS = 5000;
 static constexpr int WAKATIME_MAX_RETRY_DELAY_MS = 30000;
 
-WakaTimeManager::WakaTimeManager(MainWindow *mainWindow):
+WakaTimeManager::WakaTimeManager(MainWindow *mainWindow, EditorActivityCollector *activityCollector):
     QObject(mainWindow),
     mMainWindow(mainWindow),
+    mActivityCollector(activityCollector),
     mEnabled(false),
     mDebugEnabled(false),
     mPlugin(QStringLiteral("redpanda-cpp/%1 redpanda-cpp-wakatime/%2")
@@ -37,37 +36,41 @@ WakaTimeManager::WakaTimeManager(MainWindow *mainWindow):
         Editor *editor = mPendingActivityEditor.data();
         mPendingActivityEditor.clear();
         if (editor) {
-            appendHeartbeat(editor, false);
+            appendHeartbeat(mActivityCollector->snapshot(editor), false);
         }
     });
+    connect(mActivityCollector, &EditorActivityCollector::activityCollected,
+            this, &WakaTimeManager::onActivityCollected);
     connect(&mFlushTimer, &QTimer::timeout, this, &WakaTimeManager::flushPending);
     connect(&mRetryTimer, &QTimer::timeout, this, &WakaTimeManager::flushPending);
 
     reloadSettings();
 }
 
-void WakaTimeManager::attachEditor(Editor *editor)
+void WakaTimeManager::onActivityCollected(Editor *editor, const EditorActivitySnapshot &activity,
+                                         EditorActivityKind kind)
 {
-    if (!editor || mAttachedEditors.contains(editor)) {
-        return;
-    }
-
-    mAttachedEditors.insert(editor);
-    connect(editor, &QObject::destroyed, this, [this, editor] {
-        mAttachedEditors.remove(editor);
-    });
-    connect(editor, &Editor::statusChanged, this,
-            [this, editor](QSynedit::StatusChanges changes) {
-        if (!isWakaTimeEditorActivity(changes)
-                || QApplication::applicationState() != Qt::ApplicationActive
-                || !editor->hasFocus()) {
+    switch (kind) {
+    case EditorActivityKind::Interaction:
+        if (!activity.applicationActive || !activity.editorFocused) {
             return;
         }
         debounceEditorActivity(editor);
-    });
-    connect(editor, &Editor::fileSaved, this, [this](Editor *e, const QString &) {
-        appendHeartbeat(e, true);
-    });
+        break;
+    case EditorActivityKind::EditorActivated:
+        if (!activity.applicationActive || activity.restoringFiles) {
+            return;
+        }
+        appendHeartbeat(activity, false);
+        break;
+    case EditorActivityKind::FileSaved:
+        appendHeartbeat(activity, true);
+        break;
+    case EditorActivityKind::BuildStateChanged:
+    case EditorActivityKind::DebugStateChanged:
+        appendHeartbeat(activity, false);
+        break;
+    }
 }
 
 void WakaTimeManager::reloadSettings()
@@ -111,37 +114,6 @@ void WakaTimeManager::reloadSettings()
     beginCapabilityProbe();
 }
 
-void WakaTimeManager::onEditorActivated(Editor *editor)
-{
-    if (QApplication::applicationState() != Qt::ApplicationActive
-            || (mMainWindow && (mMainWindow->openingFiles() || mMainWindow->openingProject()))) {
-        return;
-    }
-    appendHeartbeat(editor, false);
-}
-
-void WakaTimeManager::setBuilding(bool building)
-{
-    if (mBuilding == building) {
-        return;
-    }
-    mBuilding = building;
-    if (mMainWindow && mMainWindow->editorManager()) {
-        appendHeartbeat(mMainWindow->editorManager()->getEditor(), false);
-    }
-}
-
-void WakaTimeManager::setDebugging(bool debugging)
-{
-    if (mDebugging == debugging) {
-        return;
-    }
-    mDebugging = debugging;
-    if (mMainWindow && mMainWindow->editorManager()) {
-        appendHeartbeat(mMainWindow->editorManager()->getEditor(), false);
-    }
-}
-
 void WakaTimeManager::shutdown(int timeoutMs)
 {
     if (mShuttingDown) {
@@ -153,7 +125,7 @@ void WakaTimeManager::shutdown(int timeoutMs)
         Editor *editor = mPendingActivityEditor.data();
         mPendingActivityEditor.clear();
         if (editor) {
-            appendHeartbeat(editor, false);
+            appendHeartbeat(mActivityCollector->snapshot(editor), false);
         }
     }
     mShuttingDown = true;
@@ -194,27 +166,24 @@ void WakaTimeManager::debounceEditorActivity(Editor *editor)
     mActivityDebounceTimer.start(WAKATIME_ACTIVITY_DEBOUNCE_MS);
 }
 
-void WakaTimeManager::appendHeartbeat(Editor *editor, bool isWrite)
+void WakaTimeManager::appendHeartbeat(const EditorActivitySnapshot &activity, bool isWrite)
 {
-    if (!mEnabled || mShuttingDown || !editor || mCliPath.isEmpty()
-            || !QFileInfo(mCliPath).isFile() || editor->isNew()) {
+    if (!mEnabled || mShuttingDown || !activity.hasEditor || mCliPath.isEmpty()
+            || !QFileInfo(mCliPath).isFile() || activity.isNew) {
         return;
     }
 
-    const QString filename = editor->filename();
-    if (shouldSkipFile(filename)) {
+    if (shouldSkipFile(activity.filename)) {
         return;
     }
 
-    const qint64 now = QDateTime::currentMSecsSinceEpoch();
-    const WakaTimeCategory category = wakaTimeCategory(mBuilding, mDebugging);
-    const int lineNumber = editor->caretY() + 1;
-    const int cursorPosition = editor->caretX() + 1;
-    if (!mPolicy.shouldAppend(filename, now, lineNumber, cursorPosition, isWrite, category)) {
+    const WakaTimeHeartbeat heartbeat = makeWakaTimeHeartbeat(activity, isWrite);
+    if (!mPolicy.shouldAppend(heartbeat.entity, heartbeat.timeMs, heartbeat.lineNumber,
+                             heartbeat.cursorPosition, heartbeat.isWrite, heartbeat.category)) {
         return;
     }
 
-    enqueueHeartbeat(makeHeartbeat(editor, isWrite, now));
+    enqueueHeartbeat(heartbeat);
 }
 
 bool WakaTimeManager::shouldSkipFile(const QString &filename) const
@@ -225,27 +194,6 @@ bool WakaTimeManager::shouldSkipFile(const QString &filename) const
 
     const QFileInfo fileInfo(filename);
     return !fileInfo.exists() || !fileInfo.isFile();
-}
-
-WakaTimeHeartbeat WakaTimeManager::makeHeartbeat(Editor *editor, bool isWrite, qint64 timeMs) const
-{
-    WakaTimeHeartbeat heartbeat;
-    heartbeat.entity = editor->filename();
-    heartbeat.timeMs = timeMs;
-    heartbeat.lineNumber = editor->caretY() + 1;
-    heartbeat.cursorPosition = editor->caretX() + 1;
-    heartbeat.linesInFile = editor->lineCount();
-    heartbeat.isWrite = isWrite;
-    heartbeat.category = wakaTimeCategory(mBuilding, mDebugging);
-
-    if (mMainWindow && editor->inProject()) {
-        const std::shared_ptr<Project> project = mMainWindow->project();
-        if (project && project->inProject(heartbeat.entity)) {
-            heartbeat.alternateProject = project->name();
-            heartbeat.projectFolder = project->directory();
-        }
-    }
-    return heartbeat;
 }
 
 void WakaTimeManager::beginCapabilityProbe()

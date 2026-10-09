@@ -69,6 +69,7 @@
 #include "shortcutmanager.h"
 #include "colorscheme.h"
 #include "thememanager.h"
+#include "editoractivitycollector.h"
 #include "wakatimemanager.h"
 #include "widgets/darkfusionstyle.h"
 #include "widgets/lightfusionstyle.h"
@@ -334,7 +335,8 @@ MainWindow::MainWindow(QWidget *parent)
                              tr("Error"),
                              e.reason());
     }
-    mWakaTimeManager = new WakaTimeManager{this};
+    mEditorActivityCollector = new EditorActivityCollector{this};
+    mWakaTimeManager = new WakaTimeManager{this, mEditorActivityCollector};
     mBookmarkModel = new BookmarkModel{this};
     try {
         mBookmarkModel->loadBookmarks(includeTrailingPathDelimiter(pSettings->dirs().config())
@@ -1309,8 +1311,8 @@ void MainWindow::onFileSaved(const QString &path, bool inProject)
 
 void MainWindow::onDebugFinished()
 {
-    if (mWakaTimeManager && !mQuitting) {
-        mWakaTimeManager->setDebugging(false);
+    if (mEditorActivityCollector && !mQuitting) {
+        mEditorActivityCollector->setDebugging(false);
     }
     if (cpuDialog()!=nullptr) {
         cpuDialog()->close();
@@ -2839,8 +2841,8 @@ void MainWindow::debug()
         return;
     }
 
-    if (mWakaTimeManager) {
-        mWakaTimeManager->setDebugging(true);
+    if (mEditorActivityCollector) {
+        mEditorActivityCollector->setDebugging(true);
     }
     updateEditorActions();
 
@@ -6151,16 +6153,16 @@ void MainWindow::clearTodos()
 void MainWindow::onCompileStarted()
 {
     mCompileIssuesState = CompileIssuesState::Compiling;
-    if (mWakaTimeManager) {
-        mWakaTimeManager->setBuilding(true);
+    if (mEditorActivityCollector) {
+        mEditorActivityCollector->setBuilding(true);
     }
 }
 
 void MainWindow::onProjectCompileStarted()
 {
     mCompileIssuesState = CompileIssuesState::ProjectCompiling;
-    if (mWakaTimeManager) {
-        mWakaTimeManager->setBuilding(true);
+    if (mEditorActivityCollector) {
+        mEditorActivityCollector->setBuilding(true);
     }
 }
 
@@ -6171,8 +6173,8 @@ void MainWindow::onSyntaxCheckStarted()
 
 void MainWindow::onCompileFinished(QString filename, bool isCheckSyntax)
 {
-    if (!isCheckSyntax && mWakaTimeManager && !mQuitting) {
-        mWakaTimeManager->setBuilding(false);
+    if (!isCheckSyntax && mEditorActivityCollector && !mQuitting) {
+        mEditorActivityCollector->setBuilding(false);
     }
     if (mQuitting) {
         if (isCheckSyntax)
@@ -8411,8 +8413,8 @@ void MainWindow::invalidateProjectProxyModel()
 
 void MainWindow::on_EditorTabsLeft_currentChanged(int)
 {
-    if (mWakaTimeManager && mEditorManager) {
-        mWakaTimeManager->onEditorActivated(
+    if (mEditorActivityCollector && mEditorManager) {
+        mEditorActivityCollector->onEditorActivated(
             mEditorManager->getEditor(-1, ui->EditorTabsLeft));
     }
 }
@@ -8420,8 +8422,8 @@ void MainWindow::on_EditorTabsLeft_currentChanged(int)
 
 void MainWindow::on_EditorTabsRight_currentChanged(int)
 {
-    if (mWakaTimeManager && mEditorManager && ui->EditorTabsRight->isVisible()) {
-        mWakaTimeManager->onEditorActivated(
+    if (mEditorActivityCollector && mEditorManager && ui->EditorTabsRight->isVisible()) {
+        mEditorActivityCollector->onEditorActivated(
             mEditorManager->getEditor(-1, ui->EditorTabsRight));
     }
 }
@@ -8797,6 +8799,11 @@ bool MainWindow::shouldRemoveAllSettings() const
 ToolsManager *MainWindow::toolsManager() const
 {
     return mToolsManager;
+}
+
+EditorActivityCollector *MainWindow::editorActivityCollector() const
+{
+    return mEditorActivityCollector;
 }
 
 WakaTimeManager *MainWindow::wakaTimeManager() const

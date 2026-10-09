@@ -30,12 +30,19 @@ WakaTimeCategory wakaTimeCategory(bool building, bool debugging)
     return WakaTimeCategory::Coding;
 }
 
-bool isWakaTimeEditorActivity(QFlags<QSynedit::StatusChange> changes)
+WakaTimeHeartbeat makeWakaTimeHeartbeat(const EditorActivitySnapshot &activity, bool isWrite)
 {
-    return changes.testFlag(QSynedit::StatusChange::CaretX)
-        || changes.testFlag(QSynedit::StatusChange::CaretY)
-        || changes.testFlag(QSynedit::StatusChange::Selection)
-        || changes.testFlag(QSynedit::StatusChange::Modified);
+    WakaTimeHeartbeat heartbeat;
+    heartbeat.entity = activity.filename;
+    heartbeat.timeMs = activity.timeMs;
+    heartbeat.lineNumber = activity.lineNumber;
+    heartbeat.cursorPosition = activity.cursorPosition;
+    heartbeat.linesInFile = activity.linesInFile;
+    heartbeat.isWrite = isWrite;
+    heartbeat.category = wakaTimeCategory(activity.building, activity.debugging);
+    heartbeat.alternateProject = activity.projectName;
+    heartbeat.projectFolder = activity.projectFolder;
+    return heartbeat;
 }
 
 bool WakaTimeHeartbeatPolicy::shouldAppend(const QString &entity,

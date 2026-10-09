@@ -6,30 +6,27 @@
 #include <QHash>
 #include <QObject>
 #include <QPointer>
-#include <QSet>
 #include <QTimer>
 
 class Editor;
+class EditorActivityCollector;
 class MainWindow;
 class QProcess;
 
 class WakaTimeManager: public QObject {
     Q_OBJECT
 public:
-    explicit WakaTimeManager(MainWindow *mainWindow);
+    WakaTimeManager(MainWindow *mainWindow, EditorActivityCollector *activityCollector);
 
-    void attachEditor(Editor *editor);
     void reloadSettings();
-    void onEditorActivated(Editor *editor);
-    void setBuilding(bool building);
-    void setDebugging(bool debugging);
     void shutdown(int timeoutMs = 2000);
 
 private:
+    void onActivityCollected(Editor *editor, const EditorActivitySnapshot &activity,
+                             EditorActivityKind kind);
     void debounceEditorActivity(Editor *editor);
-    void appendHeartbeat(Editor *editor, bool isWrite);
+    void appendHeartbeat(const EditorActivitySnapshot &activity, bool isWrite);
     bool shouldSkipFile(const QString &filename) const;
-    WakaTimeHeartbeat makeHeartbeat(Editor *editor, bool isWrite, qint64 timeMs) const;
 
     void beginCapabilityProbe();
     void finishCapabilityProbe(QProcess *process, const QByteArray &output);
@@ -46,10 +43,9 @@ private:
 
 private:
     MainWindow *mMainWindow;
+    EditorActivityCollector *mActivityCollector;
     bool mEnabled;
     bool mDebugEnabled;
-    bool mBuilding {false};
-    bool mDebugging {false};
     bool mDraining {false};
     bool mBatchDrainActive {false};
     bool mShuttingDown {false};
@@ -72,8 +68,6 @@ private:
     QProcess *mProbeProcess {nullptr};
     qint64 mLastSentAt {0};
     int mRetryDelayMs {1000};
-
-    QSet<Editor*> mAttachedEditors;
 };
 
 #endif // WAKATIMEMANAGER_H

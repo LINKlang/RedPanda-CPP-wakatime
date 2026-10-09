@@ -76,6 +76,7 @@ class ColorSchemeItem;
 class VisitHistoryManager;
 class ColorManager;
 class IconsManager;
+class EditorActivityCollector;
 class WakaTimeManager;
 
 #define DPI_CHANGED_EVENT ((QEvent::Type)(QEvent::User+1))
@@ -212,6 +213,7 @@ public:
     const PTodoParser &todoParser() const;
 
     ToolsManager *toolsManager() const;
+    EditorActivityCollector *editorActivityCollector() const;
     WakaTimeManager *wakaTimeManager() const;
 
     bool shouldRemoveAllSettings() const;
@@ -952,6 +954,7 @@ private:
     CodeSnippetsManager *mCodeSnippetManager;
     PTodoParser mTodoParser;
     ToolsManager *mToolsManager;
+    EditorActivityCollector *mEditorActivityCollector {nullptr};
     WakaTimeManager *mWakaTimeManager {nullptr};
     CustomFileSystemModel *mFileSystemModel;
     OJProblemSetModel *mOJProblemSetModel;

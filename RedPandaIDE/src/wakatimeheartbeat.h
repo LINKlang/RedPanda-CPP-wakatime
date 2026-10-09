@@ -8,7 +8,7 @@
 #include <QString>
 #include <QStringList>
 
-#include "qsynedit/types.h"
+#include "editoractivity.h"
 
 enum class WakaTimeCategory {
     Coding,
@@ -18,7 +18,6 @@ enum class WakaTimeCategory {
 
 QString wakaTimeCategoryName(WakaTimeCategory category);
 WakaTimeCategory wakaTimeCategory(bool building, bool debugging);
-bool isWakaTimeEditorActivity(QFlags<QSynedit::StatusChange> changes);
 
 struct WakaTimeHeartbeat {
     QString entity;
@@ -31,6 +30,8 @@ struct WakaTimeHeartbeat {
     QString alternateProject;
     QString projectFolder;
 };
+
+WakaTimeHeartbeat makeWakaTimeHeartbeat(const EditorActivitySnapshot &activity, bool isWrite);
 
 class WakaTimeHeartbeatPolicy {
 public:

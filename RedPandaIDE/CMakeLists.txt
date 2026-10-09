@@ -62,6 +62,7 @@ target_moc_classes(RedPandaIDE
     src/codesnippetsmanager
     src/cpprefacter
     src/editor
+    src/editoractivitycollector
     src/editormanager
     src/iconsmanager
     src/main

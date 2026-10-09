@@ -9,14 +9,14 @@
 
 void TestWakaTimeHeartbeat::testActivityChanges()
 {
-    QVERIFY(isWakaTimeEditorActivity(QSynedit::StatusChange::CaretX));
-    QVERIFY(isWakaTimeEditorActivity(QSynedit::StatusChange::CaretY));
-    QVERIFY(isWakaTimeEditorActivity(QSynedit::StatusChange::Selection));
-    QVERIFY(isWakaTimeEditorActivity(QSynedit::StatusChange::Modified));
-    QVERIFY(!isWakaTimeEditorActivity(QSynedit::StatusChange::LeftPos));
-    QVERIFY(!isWakaTimeEditorActivity(QSynedit::StatusChange::TopPos));
-    QVERIFY(!isWakaTimeEditorActivity(QSynedit::StatusChange::ReadOnlyChanged));
-    QVERIFY(!isWakaTimeEditorActivity(QSynedit::StatusChange::Custom0));
+    QVERIFY(isEditorActivity(QSynedit::StatusChange::CaretX));
+    QVERIFY(isEditorActivity(QSynedit::StatusChange::CaretY));
+    QVERIFY(isEditorActivity(QSynedit::StatusChange::Selection));
+    QVERIFY(isEditorActivity(QSynedit::StatusChange::Modified));
+    QVERIFY(!isEditorActivity(QSynedit::StatusChange::LeftPos));
+    QVERIFY(!isEditorActivity(QSynedit::StatusChange::TopPos));
+    QVERIFY(!isEditorActivity(QSynedit::StatusChange::ReadOnlyChanged));
+    QVERIFY(!isEditorActivity(QSynedit::StatusChange::Custom0));
 }
 
 void TestWakaTimeHeartbeat::testHeartbeatIntervalAndFileChanges()
@@ -109,22 +109,22 @@ void TestWakaTimeHeartbeat::testCliSerialization()
     capabilities.alternateProject = true;
     capabilities.projectFolder = true;
 
-    WakaTimeHeartbeat first;
-    first.entity = "A.cpp";
-    first.timeMs = 1234567;
-    first.lineNumber = 7;
-    first.cursorPosition = 9;
-    first.linesInFile = 42;
-    first.isWrite = true;
-    first.category = WakaTimeCategory::Building;
-    first.alternateProject = "Example";
-    first.projectFolder = "/project";
+    EditorActivitySnapshot activity;
+    activity.hasEditor = true;
+    activity.filename = "A.cpp";
+    activity.timeMs = 1234567;
+    activity.lineNumber = 7;
+    activity.cursorPosition = 9;
+    activity.linesInFile = 42;
+    activity.building = true;
+    activity.projectName = "Example";
+    activity.projectFolder = "/project";
+    const WakaTimeHeartbeat first = makeWakaTimeHeartbeat(activity, true);
 
-    WakaTimeHeartbeat second = first;
-    second.entity = "B.cpp";
-    second.timeMs = 1235567;
-    second.isWrite = false;
-    second.category = WakaTimeCategory::Debugging;
+    activity.filename = "B.cpp";
+    activity.timeMs = 1235567;
+    activity.debugging = true;
+    const WakaTimeHeartbeat second = makeWakaTimeHeartbeat(activity, false);
 
     const WakaTimeCliInvocation invocation = makeWakaTimeCliInvocation(
         {first, second}, "/config/wakatime.cfg", "redpanda/test", capabilities);
@@ -133,12 +133,19 @@ void TestWakaTimeHeartbeat::testCliSerialization()
     QVERIFY(invocation.arguments.contains("--alternate-project"));
     QVERIFY(invocation.arguments.contains("--project-folder"));
     QVERIFY(invocation.arguments.contains("--write"));
+    QCOMPARE(invocation.arguments.value(invocation.arguments.indexOf("--entity") + 1),
+             QString("A.cpp"));
+    QCOMPARE(invocation.arguments.value(invocation.arguments.indexOf("--time") + 1),
+             QString("1234.567"));
+    QCOMPARE(invocation.arguments.value(invocation.arguments.indexOf("--category") + 1),
+             QString("building"));
 
     const QJsonDocument document = QJsonDocument::fromJson(invocation.standardInput);
     QVERIFY(document.isArray());
     QCOMPARE(document.array().size(), 1);
     const QJsonObject extra = document.array().first().toObject();
     QCOMPARE(extra.value("entity").toString(), QString("B.cpp"));
+    QCOMPARE(extra.value("time").toDouble(), 1235.567);
     QCOMPARE(extra.value("lineno").toInt(), 7);
     QCOMPARE(extra.value("cursorpos").toInt(), 9);
     QCOMPARE(extra.value("lines_in_file").toInt(), 42);

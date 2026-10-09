@@ -24,7 +24,7 @@
 #include "project.h"
 #include "systemconsts.h"
 #include "visithistorymanager.h"
-#include "wakatimemanager.h"
+#include "editoractivitycollector.h"
 #include "debugger/debugger.h"
 #include "utils/parser.h"
 #include <QApplication>
@@ -159,7 +159,7 @@ Editor* EditorManager::newEditor(const QString& filename, const QByteArray& enco
     connect(e, &QWidget::customContextMenuRequested, pMainWindow, &MainWindow::onEditorContextMenu);
     connect(e, &Editor::openFileRequested, pMainWindow, &MainWindow::onOpenFileRequested);
     connect(e, &Editor::symbolChoosed, pMainWindow->symbolUsageManager(), &SymbolUsageManager::updateUsage);
-    pMainWindow->wakaTimeManager()->attachEditor(e);
+    pMainWindow->editorActivityCollector()->attachEditor(e);
 
     if (!pMainWindow->openingFiles()
             && !pMainWindow->openingProject()) {

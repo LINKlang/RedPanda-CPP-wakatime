@@ -129,6 +129,7 @@ target("RedPandaIDE")
         "src/codesnippetsmanager",
         "src/cpprefacter",
         "src/editor",
+        "src/editoractivitycollector",
         "src/editormanager",
         "src/iconsmanager",
         "src/main",
