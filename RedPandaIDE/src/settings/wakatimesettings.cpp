@@ -173,6 +173,7 @@ QString WakaTimeSettings::managedConfigText() const
     QString result;
     QTextStream stream(&result);
     stream << "[settings]\n";
+    stream << "sync_ai_disabled = true\n";
     if (!mApiUrlsEnabled) {
         stream << "api_key = " << sanitizeWakaTimeConfigValue(mApiKey) << "\n";
         stream << "api_url = " << sanitizeWakaTimeConfigValue(mApiUrl) << "\n";
