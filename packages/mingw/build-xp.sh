@@ -113,7 +113,8 @@ done
 BUILD_DIR="${TEMP}/redpanda-xp-${PROFILE}-build"
 ASTYLE_BUILD_DIR="${BUILD_DIR}/astyle"
 PACKAGE_DIR="${TEMP}/redpanda-xp-${PROFILE}-pkg"
-NSIS="/mingw32/bin/makensis"
+NSIS_VERSION="3.13"
+NSIS="${BUILD_DIR}/nsis-${NSIS_VERSION}/makensis.exe"
 _7Z="/mingw64/bin/7z"
 CMAKE="/mingw64/bin/cmake"
 NINJA="/mingw64/bin/ninja"
@@ -159,8 +160,14 @@ mkdir -p /c/Qt "${BUILD_DIR}" "${PACKAGE_DIR}" "${TARGET_DIR}" "${ASTYLE_BUILD_D
 
 pacman -S --noconfirm --needed \
   mingw-w64-x86_64-{7zip,cmake,ninja} \
-  mingw-w64-i686-nsis \
   curl git
+
+# Use official NSIS to retain an x86 installer for all supported profiles.
+fn_print_progress "Downloading NSIS"
+curl -fL --retry 3 \
+  "https://downloads.sourceforge.net/project/nsis/NSIS%203/${NSIS_VERSION}/nsis-${NSIS_VERSION}.zip" \
+  -o "${ASSETS_DIR}/nsis-${NSIS_VERSION}.zip"
+"${_7Z}" x -y "${ASSETS_DIR}/nsis-${NSIS_VERSION}.zip" -o"${BUILD_DIR}"
 
 if [[ ! -f "$ASSETS_DIR/$QT_ARCHIVE" ]]; then
   fn_print_progress "Downloading Qt"
@@ -234,6 +241,7 @@ PORTABLE_NAME="${PACKAGE_BASENAME}.7z"
 fn_print_progress "Making installer..."
 
 nsis_flags=(
+  "-XTarget x86-unicode"
   -DAPP_VERSION="${APP_VERSION}"
   -DARCH="${NSIS_ARCH}"
   -DFINALNAME="${SETUP_NAME}"
