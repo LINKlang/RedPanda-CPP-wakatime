@@ -56,6 +56,7 @@ Settings::Settings(const QString &filename):
     mCompile{&mPersistor},
     mUI{&mPersistor},
     mWakaTime{&mPersistor},
+    mDiscordPresence{&mPersistor},
 #ifdef ENABLE_VCS
     mVCS{&mPersistor},
 #endif
@@ -76,6 +77,7 @@ void Settings::load()
     mCompile.load();
     mUI.load();
     mWakaTime.load();
+    mDiscordPresence.load();
     mDirs.load();
 #ifdef ENABLE_VCS
     mVCS.load();
@@ -147,6 +149,11 @@ UISettings &Settings::ui()
 WakaTimeSettings &Settings::wakatime()
 {
     return mWakaTime;
+}
+
+DiscordPresenceSettings &Settings::discordPresence()
+{
+    return mDiscordPresence;
 }
 
 #ifdef ENABLE_VCS

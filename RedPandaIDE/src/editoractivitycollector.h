@@ -18,6 +18,7 @@ public:
     void onEditorActivated(Editor *editor);
     void setBuilding(bool building);
     void setDebugging(bool debugging);
+    void notifyContextChanged();
 
     EditorActivitySnapshot snapshot(Editor *editor) const;
     EditorActivitySnapshot currentActivity() const;
@@ -28,6 +29,8 @@ signals:
                            EditorActivityKind kind);
 
 private:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+    void notify(EditorActivityKind kind);
     MainWindow *mMainWindow;
     bool mBuilding {false};
     bool mDebugging {false};

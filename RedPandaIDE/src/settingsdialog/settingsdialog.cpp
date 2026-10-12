@@ -56,6 +56,8 @@
 #include "projectdllhostwidget.h"
 #include "toolsgeneralwidget.h"
 #include "toolswakatimewidget.h"
+#include "toolsdiscordpresencewidget.h"
+#include "../discordpresencemanager.h"
 #ifdef ENABLE_VCS
 #include "toolsgitwidget.h"
 #endif
@@ -243,6 +245,13 @@ PSettingsDialog SettingsDialog::optionDialog(ColorManager *colorManager, IconsMa
 
     widget = new ToolsWakaTimeWidget(tr("WakaTime"),tr("Tools"),iconsManager);
     dialog->addWidget(widget);
+
+    ToolsDiscordPresenceWidget *discordWidget = new ToolsDiscordPresenceWidget(
+        tr("Discord Rich Presence"), tr("Tools"), iconsManager,
+        &pSettings->discordPresence(), pMainWindow->discordPresenceManager()->client());
+    connect(discordWidget, &ToolsDiscordPresenceWidget::settingsApplied,
+            pMainWindow, &MainWindow::applySettings);
+    dialog->addWidget(discordWidget);
 
 #ifdef ENABLE_VCS
     widget = new ToolsGitWidget(tr("Git"),tr("Tools"),iconsManager);

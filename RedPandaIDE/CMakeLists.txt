@@ -14,6 +14,7 @@ target_qt_plain_cpp(RedPandaIDE
     src/utils
     src/visithistorymanager
     src/wakatimeheartbeat
+    src/discordpresence
     # compiler
     src/compiler/compilerinfo
     # debugger
@@ -44,6 +45,7 @@ target_qt_plain_cpp(RedPandaIDE
     src/settings/languagesettings
     src/settings/uisettings
     src/settings/wakatimesettings
+    src/settings/discordpresencesettings
     # utils
     src/utils/escape
     src/utils/file
@@ -63,6 +65,8 @@ target_moc_classes(RedPandaIDE
     src/cpprefacter
     src/editor
     src/editoractivitycollector
+    src/discordrpcclient
+    src/discordpresencemanager
     src/editormanager
     src/iconsmanager
     src/main
@@ -100,6 +104,7 @@ target_moc_classes(RedPandaIDE
     # settings dialog
     src/settingsdialog/settingswidget
     src/settingsdialog/toolswakatimewidget
+    src/settingsdialog/toolsdiscordpresencewidget
     # widgets
     src/widgets/bookmarkmodel
     src/widgets/classbrowser
@@ -226,6 +231,8 @@ target_link_libraries(RedPandaIDE PRIVATE
 add_executable(test-editor test/test-editor-main.cpp)
 
 target_qt_plain_cpp(test-editor
+    src/discordpresence
+    src/settings/discordpresencesettings
     #settings
     src/settings/basesettings
     src/settings/dirsettings
@@ -256,6 +263,11 @@ target_qt_plain_cpp(test-editor
     )
 
 target_moc_classes(test-editor
+    src/widgets/coloredit
+    src/discordrpcclient
+    src/settingsdialog/settingswidget
+    src/settingsdialog/toolsdiscordpresencewidget
+    test/test_discordpresence_widget
     src/editor
 
     src/widgets/bookmarkmodel
@@ -276,6 +288,7 @@ target_include_directories(test-editor PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(test-editor PRIVATE
+        Qt::Network
         Qt::Core
         Qt::Gui
         Qt::PrintSupport
@@ -338,6 +351,21 @@ add_test(
     COMMAND test-wakatime)
 
 add_dependencies(all-test-targets test-wakatime)
+
+add_executable(test-discordrpc test/test-discordrpc-main.cpp)
+target_moc_classes(test-discordrpc src/discordrpcclient)
+target_moc_classes(test-discordrpc test/test_discordrpc)
+target_include_directories(test-discordrpc PRIVATE .)
+target_link_libraries(test-discordrpc PRIVATE Qt::Core Qt::Network Qt::Test)
+target_qt_plain_cpp(test-discordrpc
+    src/discordpresence
+    src/settings/basesettings
+    src/settings/discordpresencesettings)
+target_link_libraries(test-discordrpc PRIVATE Qt::Gui)
+target_include_directories(test-discordrpc PRIVATE ../libs/qsynedit)
+target_link_libraries(test-discordrpc PRIVATE Qt::Widgets redpanda_qt_utils)
+add_test(NAME test-discordrpc COMMAND test-discordrpc)
+add_dependencies(all-test-targets test-discordrpc)
 
 #####################
 # test-cppparser    #

@@ -12,6 +12,8 @@ enum class EditorActivityKind {
     EditorActivated,
     BuildStateChanged,
     DebugStateChanged,
+    UserInteraction,
+    ContextChanged,
 };
 
 struct EditorActivitySnapshot {

@@ -7,11 +7,40 @@
 
 #include <QApplication>
 #include <QDateTime>
+#include <QEvent>
+#include <QTimer>
 
 EditorActivityCollector::EditorActivityCollector(MainWindow *mainWindow):
     QObject(mainWindow),
     mMainWindow(mainWindow)
 {
+    qApp->installEventFilter(this);
+    connect(qApp, &QApplication::applicationStateChanged, this, [this] {
+        notifyContextChanged();
+    });
+}
+
+void EditorActivityCollector::notify(EditorActivityKind kind)
+{
+    Editor *editor = mMainWindow->editorManager()->getEditor();
+    emit activityCollected(editor, snapshot(editor), kind);
+}
+
+void EditorActivityCollector::notifyContextChanged()
+{
+    notify(EditorActivityKind::ContextChanged);
+}
+
+bool EditorActivityCollector::eventFilter(QObject *watched, QEvent *event)
+{
+    QWidget *widget = qobject_cast<QWidget *>(watched);
+    if (event->spontaneous() && widget
+        && (widget == mMainWindow || mMainWindow->isAncestorOf(widget))) {
+        if (event->type() == QEvent::KeyPress || event->type() == QEvent::MouseButtonPress
+            || event->type() == QEvent::Wheel)
+            notify(EditorActivityKind::UserInteraction);
+    }
+    return QObject::eventFilter(watched, event);
 }
 
 void EditorActivityCollector::attachEditor(Editor *editor)
@@ -32,6 +61,10 @@ void EditorActivityCollector::attachEditor(Editor *editor)
     });
     connect(editor, &Editor::fileSaved, this, [this](Editor *editor, const QString &) {
         emit activityCollected(editor, snapshot(editor), EditorActivityKind::FileSaved);
+    });
+    connect(editor, &Editor::focusInOccured, this, [this] { notifyContextChanged(); });
+    connect(editor, &Editor::closeOccured, this, [this] {
+        QTimer::singleShot(0, this, &EditorActivityCollector::notifyContextChanged);
     });
 }
 
@@ -69,6 +102,11 @@ EditorActivitySnapshot EditorActivityCollector::snapshot(Editor *editor) const
     activity.building = mBuilding;
     activity.debugging = mDebugging;
     if (!editor) {
+        const std::shared_ptr<Project> project = mMainWindow->project();
+        if (project) {
+            activity.projectName = project->name();
+            activity.projectFolder = project->directory();
+        }
         return activity;
     }
 

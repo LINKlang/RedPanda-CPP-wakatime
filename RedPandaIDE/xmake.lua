@@ -112,6 +112,8 @@ target("RedPandaIDE")
         "src/settings/uisettings.cpp",
         "src/settings/wakatimesettings.cpp",
         "src/wakatimeheartbeat.cpp",
+        "src/discordpresence.cpp",
+        "src/settings/discordpresencesettings.cpp",
         -- utils
         "src/utils/escape.cpp",
         "src/utils/file.cpp",
@@ -130,6 +132,8 @@ target("RedPandaIDE")
         "src/cpprefacter",
         "src/editor",
         "src/editoractivitycollector",
+        "src/discordrpcclient",
+        "src/discordpresencemanager",
         "src/editormanager",
         "src/iconsmanager",
         "src/main",
@@ -168,6 +172,7 @@ target("RedPandaIDE")
         -- settings dialog
         "src/settingsdialog/settingswidget",
         "src/settingsdialog/toolswakatimewidget",
+        "src/settingsdialog/toolsdiscordpresencewidget",
         -- widgets
         "src/widgets/bookmarkmodel",
         "src/widgets/classbrowser",

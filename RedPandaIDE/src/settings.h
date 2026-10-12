@@ -30,6 +30,7 @@
 #include "settings/languagesettings.h"
 #include "settings/uisettings.h"
 #include "settings/wakatimesettings.h"
+#include "settings/discordpresencesettings.h"
 #ifdef ENABLE_VCS
 #include "settings/vcssettings.h"
 #endif
@@ -72,6 +73,7 @@ public:
     CompileSettings &compile();
     UISettings &ui();
     WakaTimeSettings &wakatime();
+    DiscordPresenceSettings &discordPresence();
 #ifdef ENABLE_VCS
     VCS &vcs();
 #endif
@@ -92,6 +94,7 @@ private:
     CompileSettings mCompile;
     UISettings mUI;
     WakaTimeSettings mWakaTime;
+    DiscordPresenceSettings mDiscordPresence;
 #ifdef ENABLE_VCS
     VCSSetting mVCS;
 #endif

@@ -70,6 +70,9 @@ void WakaTimeManager::onActivityCollected(Editor *editor, const EditorActivitySn
     case EditorActivityKind::DebugStateChanged:
         appendHeartbeat(activity, false);
         break;
+    case EditorActivityKind::UserInteraction:
+    case EditorActivityKind::ContextChanged:
+        break;
     }
 }
 

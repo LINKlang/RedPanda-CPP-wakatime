@@ -70,6 +70,7 @@
 #include "colorscheme.h"
 #include "thememanager.h"
 #include "editoractivitycollector.h"
+#include "discordpresencemanager.h"
 #include "wakatimemanager.h"
 #include "widgets/darkfusionstyle.h"
 #include "widgets/lightfusionstyle.h"
@@ -337,6 +338,7 @@ MainWindow::MainWindow(QWidget *parent)
     }
     mEditorActivityCollector = new EditorActivityCollector{this};
     mWakaTimeManager = new WakaTimeManager{this, mEditorActivityCollector};
+    mDiscordPresenceManager = new DiscordPresenceManager{this, mEditorActivityCollector};
     mBookmarkModel = new BookmarkModel{this};
     try {
         mBookmarkModel->loadBookmarks(includeTrailingPathDelimiter(pSettings->dirs().config())
@@ -1074,6 +1076,9 @@ void MainWindow::updateFileTypeActions(const Editor* e)
 
 void MainWindow::applySettings()
 {
+    if (mDiscordPresenceManager) {
+        mDiscordPresenceManager->reloadSettings();
+    }
     if (mWakaTimeManager) {
         mWakaTimeManager->reloadSettings();
     }
@@ -1821,6 +1826,7 @@ void MainWindow::openFiles(const QStringList &files)
     auto end = finally([this] {
         this->mEditorManager->endUpdate();
         mOpeningFiles=false;
+        mEditorActivityCollector->notifyContextChanged();
         Editor* e=mEditorManager->getEditor();
         if (e) {
             e->reparse();
@@ -1909,6 +1915,7 @@ void MainWindow::openProject(QString filename, bool openFiles)
     mOpeningProject=true;
     auto action=finally([this]{
         mOpeningProject=false;
+        mEditorActivityCollector->notifyContextChanged();
     });
     if (!fileExists(filename)) {
         return;
@@ -3580,6 +3587,7 @@ void MainWindow::loadLastOpens()
     mOpeningFiles=true;
     auto action=finally([this]{
         mOpeningFiles=false;
+        mEditorActivityCollector->notifyContextChanged();
     });
     QString filename = includeTrailingPathDelimiter(pSettings->dirs().config()) + DEV_LASTOPENS_FILE;
     if (!fileExists(filename))
@@ -5617,6 +5625,7 @@ void MainWindow::closeProject(bool refreshEditor)
         }
         updateProjectView();
         mClosingProject=false;
+        mEditorActivityCollector->notifyContextChanged();
     }
     if (refreshEditor)
         on_cbSearchHistory_currentIndexChanged(ui->cbSearchHistory->currentIndex());
@@ -5957,6 +5966,9 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     //        }
     //    }
 
+        if (mDiscordPresenceManager) {
+            mDiscordPresenceManager->shutdown();
+        }
         if (mWakaTimeManager) {
             mWakaTimeManager->shutdown();
         }
@@ -8804,6 +8816,11 @@ ToolsManager *MainWindow::toolsManager() const
 EditorActivityCollector *MainWindow::editorActivityCollector() const
 {
     return mEditorActivityCollector;
+}
+
+DiscordPresenceManager *MainWindow::discordPresenceManager() const
+{
+    return mDiscordPresenceManager;
 }
 
 WakaTimeManager *MainWindow::wakaTimeManager() const

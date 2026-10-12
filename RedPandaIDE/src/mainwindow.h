@@ -77,6 +77,7 @@ class VisitHistoryManager;
 class ColorManager;
 class IconsManager;
 class EditorActivityCollector;
+class DiscordPresenceManager;
 class WakaTimeManager;
 
 #define DPI_CHANGED_EVENT ((QEvent::Type)(QEvent::User+1))
@@ -214,6 +215,7 @@ public:
 
     ToolsManager *toolsManager() const;
     EditorActivityCollector *editorActivityCollector() const;
+    DiscordPresenceManager *discordPresenceManager() const;
     WakaTimeManager *wakaTimeManager() const;
 
     bool shouldRemoveAllSettings() const;
@@ -955,6 +957,7 @@ private:
     PTodoParser mTodoParser;
     ToolsManager *mToolsManager;
     EditorActivityCollector *mEditorActivityCollector {nullptr};
+    DiscordPresenceManager *mDiscordPresenceManager {nullptr};
     WakaTimeManager *mWakaTimeManager {nullptr};
     CustomFileSystemModel *mFileSystemModel;
     OJProblemSetModel *mOJProblemSetModel;
