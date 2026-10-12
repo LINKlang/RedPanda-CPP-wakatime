@@ -50,9 +50,9 @@ target("RedPandaIDE")
             target:add("defines", "APP_VERSION_SUFFIX=\"" .. version.preRelease .. "\"")
         end
 
-        assert(version.wakatimePluginVersion, "wakatimePluginVersion not found in version.json")
+        assert(version.pluginVersion, "pluginVersion not found in version.json")
         target:add("defines", "REDPANDA_CPP_VERSION=\"" .. redpanda_version .. "\"")
-        target:add("defines", "WAKATIME_PLUGIN_VERSION=\"" .. version.wakatimePluginVersion .. "\"")
+        target:add("defines", "WAKATIME_PLUGIN_VERSION=\"" .. version.pluginVersion .. "\"")
     end)
 
     -- defines

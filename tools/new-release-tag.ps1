@@ -77,7 +77,7 @@ $major = Get-RequiredVersionValue -VersionInfo $versionInfo -Name "major"
 $minor = Get-RequiredVersionValue -VersionInfo $versionInfo -Name "minor"
 $patch = Get-RequiredVersionValue -VersionInfo $versionInfo -Name "patch"
 $preRelease = Get-RequiredVersionValue -VersionInfo $versionInfo -Name "preRelease"
-$wakaVersion = Get-RequiredVersionValue -VersionInfo $versionInfo -Name "wakatimePluginVersion"
+$wakaVersion = Get-RequiredVersionValue -VersionInfo $versionInfo -Name "pluginVersion"
 
 foreach ($part in @($major, $minor, $patch)) {
     if ($part -notmatch '^(0|[1-9][0-9]*)$') {

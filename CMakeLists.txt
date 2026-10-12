@@ -97,7 +97,7 @@ string(JSON APP_VERSION_MAJOR GET ${VERSION_JSON} major)
 string(JSON APP_VERSION_MINOR GET ${VERSION_JSON} minor)
 string(JSON APP_VERSION_PATCH GET ${VERSION_JSON} patch)
 string(JSON APP_VERSION_PRE_RELEASE GET ${VERSION_JSON} preRelease)
-string(JSON WAKATIME_PLUGIN_VERSION GET ${VERSION_JSON} wakatimePluginVersion)
+string(JSON WAKATIME_PLUGIN_VERSION GET ${VERSION_JSON} pluginVersion)
 
 # try git commit count for version sorting
 execute_process(
