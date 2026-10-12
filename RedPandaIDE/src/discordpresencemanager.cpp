@@ -1,5 +1,6 @@
 #include "discordpresencemanager.h"
 #include "discordrpcclient.h"
+#include "editor.h"
 #include "editoractivitycollector.h"
 #include "mainwindow.h"
 #include "settings.h"
